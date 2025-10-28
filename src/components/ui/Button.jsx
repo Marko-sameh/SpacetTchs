@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils'
 const BUTTON_VARIANTS = Object.freeze({
   primary: 'bg-primary text-white border border-primary/20 hover:bg-secondary hover:border-accent hover:shadow-lg hover:shadow-accent/20 hover:scale-105 active:scale-95',
   secondary: 'glass text-text border-border hover:border-accent hover:bg-accent/5',
-  ghost: 'text-text hover:bg-surface hover:text-accent border border-transparent hover:border-border'
+  ghost: 'text-text hover:bg-surface hover:text-accent border border-transparent hover:border-border',
+  outline: 'border-2 border-primary text-primary hover:bg-primary hover:text-white'
 })
 
 const BUTTON_SIZES = Object.freeze({

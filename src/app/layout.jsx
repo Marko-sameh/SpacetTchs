@@ -52,6 +52,7 @@ const STRUCTURED_DATA = {
 }
 
 export const metadata = {
+  metadataBase: new URL('https://spacetechs.net'),
   title: {
     default: "Space Techs - Creative Developer & 3D Portfolio",
     template: "%s | Space Techs",

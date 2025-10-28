@@ -1,8 +1,8 @@
 'use client'
 
-import { useRef, useMemo, memo, Suspense } from 'react'
+import { useRef, useMemo, memo, Suspense, useState, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Text, Stars, OrbitControls, Html, useTexture } from '@react-three/drei'
+import { Text, Stars, OrbitControls, Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { Button } from '../ui/Button'
 import Loading from '@/app/loading'
@@ -74,13 +74,29 @@ const RING_CONFIG = [
 // 🌍 Main Planet (optimized)
 const Jupiter = memo(() => {
   const ref = useRef()
-  const texture = useTexture('/images/jupitermap.jpg')
+  const [texture, setTexture] = useState(null)
+  
+  useEffect(() => {
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      '/images/jupitermap.jpg',
+      (loadedTexture) => {
+        loadedTexture.wrapS = loadedTexture.wrapT = THREE.RepeatWrapping
+        loadedTexture.anisotropy = 16
+        setTexture(loadedTexture)
+      },
+      undefined,
+      (error) => {
+        console.warn('Jupiter texture failed to load, using fallback')
+        setTexture(null)
+      }
+    )
+  }, [])
 
   const material = useMemo(() => {
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping
-    texture.anisotropy = 16
     return new THREE.MeshStandardMaterial({
       map: texture,
+      color: texture ? '#ffffff' : '#ff6b35',
       roughness: 0.6,
       metalness: 0.2
     })
@@ -101,13 +117,29 @@ const Jupiter = memo(() => {
 const Moon = memo(({ distance = 3, speed = 0.3, label = '', size = 0.25 }) => {
   const moonRef = useRef()
   const textRef = useRef()
-  const moonTexture = useTexture('/images/moon.jpg')
+  const [moonTexture, setMoonTexture] = useState(null)
+  
+  useEffect(() => {
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      '/images/moon.jpg',
+      (loadedTexture) => {
+        loadedTexture.wrapS = loadedTexture.wrapT = THREE.RepeatWrapping
+        loadedTexture.anisotropy = 8
+        setMoonTexture(loadedTexture)
+      },
+      undefined,
+      (error) => {
+        console.warn('Moon texture failed to load, using fallback')
+        setMoonTexture(null)
+      }
+    )
+  }, [])
 
   const material = useMemo(() => {
-    moonTexture.wrapS = moonTexture.wrapT = THREE.RepeatWrapping
-    moonTexture.anisotropy = 8
     return new THREE.MeshStandardMaterial({
       map: moonTexture,
+      color: moonTexture ? '#ffffff' : '#cccccc',
       roughness: 0.9,
       metalness: 0.1
     })
@@ -193,11 +225,13 @@ export default memo(function FloatingGeometry({ ctaText = '' }) {
 
       {ctaText && (
         <Html position={[0, -3.5, 0]} center>
-          <a href="/projects" className="block w-full">
-            <Button className="w-[12rem] sm:w-[16rem] px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-[var(--main-color)] text-white rounded-lg hover:bg-[var(--main-color-hover)] transition-colors font-medium">
-              {ctaText}
-            </Button>
-          </a>
+          <div className="pointer-events-auto">
+            <a href="/projects" className="block w-full">
+              <button className="w-[12rem] sm:w-[16rem] px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-lg hover:from-cyan-400 hover:to-purple-500 transition-all font-medium">
+                {ctaText}
+              </button>
+            </a>
+          </div>
         </Html>
       )}
 
