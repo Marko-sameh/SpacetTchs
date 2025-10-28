@@ -1,0 +1,56 @@
+:root {
+  /* Dark Theme Colors */
+  --color-primary: #273469;
+  --color-secondary: #1e2749;
+  --color-accent: #e4d9ff;
+  --color-background: #000;
+  --color-surface: #273469;
+  --color-text: #fafaff;
+  --color-text-muted: #fafaff99;
+  --color-border: #e4d9ff33;
+
+  /* Responsive Spacing */
+  --spacing-xs: clamp(0.25rem, 2vw, 0.5rem);
+  --spacing-sm: clamp(0.5rem, 3vw, 1rem);
+  --spacing-md: clamp(1rem, 4vw, 1.5rem);
+  --spacing-lg: clamp(1.5rem, 5vw, 2rem);
+  --spacing-xl: clamp(2rem, 6vw, 3rem);
+  --spacing-2xl: clamp(3rem, 8vw, 4rem);
+  --spacing-3xl: clamp(4rem, 10vw, 6rem);
+
+  /* Responsive Typography */
+  --font-size-xs: clamp(0.7rem, 2vw, 0.75rem);
+  --font-size-sm: clamp(0.8rem, 2.5vw, 0.875rem);
+  --font-size-base: clamp(0.9rem, 3vw, 1rem);
+  --font-size-lg: clamp(1rem, 3.5vw, 1.125rem);
+  --font-size-xl: clamp(1.1rem, 4vw, 1.25rem);
+  --font-size-2xl: clamp(1.25rem, 4.5vw, 1.5rem);
+  --font-size-3xl: clamp(1.5rem, 5vw, 1.875rem);
+  --font-size-4xl: clamp(1.875rem, 6vw, 2.25rem);
+  --font-size-5xl: clamp(2.25rem, 7vw, 3rem);
+  --font-size-6xl: clamp(2.75rem, 8vw, 3.75rem);
+  --font-size-7xl: clamp(3.25rem, 9vw, 4.5rem);
+
+  /* Container Widths */
+  --container-xs: 100%;
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1536px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-glow: 0 0 20px rgb(139 92 246 / 0.3);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 500ms ease;
+
+  /* Mobile-specific adjustments */
+  --mobile-padding: clamp(1rem, 4vw, 2rem);
+  --mobile-gap: clamp(0.75rem, 3vw, 1.5rem);
+}

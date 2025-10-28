@@ -1,0 +1,16 @@
+{
+  "name": "Speed Tech - Creative Developer",
+  "short_name": "Speed Tech",
+  "description": "Interactive 3D portfolio showcasing cutting-edge web development",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ffff",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
