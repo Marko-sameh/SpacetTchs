@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useMemo, memo } from 'react'
+import { useRef, useMemo, memo, Suspense } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Text, Stars, OrbitControls, Html, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import { Button } from '../ui/Button'
+import Loading from '@/app/loading'
 
 // Constants for performance
 const TILT_ANGLE = THREE.MathUtils.degToRad(30.7)
@@ -172,38 +173,41 @@ export default memo(function FloatingGeometry({ ctaText = '' }) {
   )
 
   return (
-    <group>
-      {/* 🌟 Optimized Lighting */}
-      <ambientLight intensity={0.0015} />
-      <directionalLight position={[5, 3, 5]} intensity={2.5} color="#ffffff" />
-      <pointLight position={[-8, -3, -6]} intensity={1.2} color="#4a90e2" />
-      <Stars radius={80} depth={60} count={6000} factor={3.5} fade />
+    <Suspense fallback={<Loading />}>
+      <group>
+        {/* 🌟 Optimized Lighting */}
+        <ambientLight intensity={0.0015} />
+        <directionalLight position={[5, 3, 5]} intensity={2.5} color="#ffffff" />
+        <pointLight position={[-8, -3, -6]} intensity={1.2} color="#4a90e2" />
+        <Stars radius={80} depth={60} count={6000} factor={3.5} fade />
 
-      {/* 🪐 Tilted System */}
-      <group rotation={[TILT_ANGLE, 0, 0]}>
-        <Jupiter />
-        {/* <PlanetRings /> */}
-        {moons}
+        {/* 🪐 Tilted System */}
+        <group rotation={[TILT_ANGLE, 0, 0]}>
+          <Jupiter />
+          {/* <PlanetRings /> */}
+          {moons}
+        </group>
+
+        {ctaText && (
+          <Html position={[0, -3.5, 0]} center>
+            <a href="/projects" className="block w-full">
+              <Button className="w-[12rem] sm:w-[16rem] px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-[var(--main-color)] text-white rounded-lg hover:bg-[var(--main-color-hover)] transition-colors font-medium">
+                {ctaText}
+              </Button>
+            </a>
+          </Html>
+        )}
+
+        {/* 🎮 Camera controls */}
+        <OrbitControls
+          enableZoom={false}
+          autoRotate
+          autoRotateSpeed={0.05}
+          rotateSpeed={0.3}
+          dampingFactor={0.05}
+        />
       </group>
+    </Suspense>
 
-      {ctaText && (
-        <Html position={[0, -3.5, 0]} center>
-          <a href="/projects" className="block w-full">
-            <Button className="w-[12rem] sm:w-[16rem] px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-[var(--main-color)] text-white rounded-lg hover:bg-[var(--main-color-hover)] transition-colors font-medium">
-              {ctaText}
-            </Button>
-          </a>
-        </Html>
-      )}
-
-      {/* 🎮 Camera controls */}
-      <OrbitControls
-        enableZoom={false}
-        autoRotate
-        autoRotateSpeed={0.05}
-        rotateSpeed={0.3}
-        dampingFactor={0.05}
-      />
-    </group>
   )
 })
