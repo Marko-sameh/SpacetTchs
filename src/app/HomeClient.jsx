@@ -3,6 +3,7 @@
 import { Suspense, lazy, memo, useMemo } from 'react'
 import { FeatureGrid } from '@/components/FeatureGrid'
 import { Scene3D, FloatingGeometry } from '@/components/ClientComponents'
+import Loading from './loading'
 
 // Lazy load heavy components
 const AboutUs = lazy(() => import('@/components/ui/AboutUs'))
@@ -13,9 +14,12 @@ const SplitRevealSection = lazy(() => import('@/components/ui/SplitRevealSection
 const HeroSection = memo(() => (
   <section className="relative min-h-[60vh] h-[60vh] lg:min-h-screen lg:h-screen flex items-center justify-center overflow-hidden">
     <div className="absolute inset-0 z-0 h-[60vh] lg:h-screen">
-      <Scene3D className="w-full h-full">
-        <FloatingGeometry ctaText="View Our Work" />
-      </Scene3D>
+      <Suspense fallback={<Loading />}>
+        <Scene3D className="w-full h-full">
+          <FloatingGeometry ctaText="View Our Work" />
+        </Scene3D>
+      </Suspense>
+
     </div>
   </section>
 
