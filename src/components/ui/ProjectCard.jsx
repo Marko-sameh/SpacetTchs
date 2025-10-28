@@ -78,14 +78,17 @@ export default function ProjectCard({ project, index = 0 }) {
 
         {/* Technologies */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {project.technologies?.slice(0, 3).map((tech, idx) => (
-            <span
-              key={idx}
-              className="px-2 py-1 bg-gray-800/50 text-gray-300 text-xs rounded-md border border-gray-700/50"
-            >
-              {tech}
-            </span>
-          ))}
+          {project.technologies?.slice(0, 3).map((tech, idx) => {
+            if (!tech) return null;
+            return (
+              <span
+                key={idx}
+                className="px-2 py-1 bg-gray-800/50 text-gray-300 text-xs rounded-md border border-gray-700/50"
+              >
+                {tech}
+              </span>
+            );
+          })}
           {project.technologies?.length > 3 && (
             <span className="px-2 py-1 bg-gray-800/50 text-gray-400 text-xs rounded-md border border-gray-700/50">
               +{project.technologies.length - 3} more
@@ -98,16 +101,21 @@ export default function ProjectCard({ project, index = 0 }) {
           <div className="flex items-center gap-1 text-gray-400 text-sm mb-4">
             <Calendar size={14} />
             <span>
-              {new Date(project.startDate).toLocaleDateString('en-US', {
-                month: 'short',
-                year: 'numeric'
-              })}
-              {project.endDate && (
-                <> - {new Date(project.endDate).toLocaleDateString('en-US', {
-                  month: 'short',
-                  year: 'numeric'
-                })}</>
-              )}
+              {(() => {
+                try {
+                  const startDate = new Date(project.startDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    year: 'numeric'
+                  });
+                  const endDate = project.endDate ? new Date(project.endDate).toLocaleDateString('en-US', {
+                    month: 'short',
+                    year: 'numeric'
+                  }) : null;
+                  return endDate ? `${startDate} - ${endDate}` : startDate;
+                } catch {
+                  return 'Date unavailable';
+                }
+              })()}
             </span>
           </div>
         )}

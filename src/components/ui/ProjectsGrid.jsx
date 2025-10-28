@@ -76,19 +76,23 @@ export default function ProjectsGrid({ initialProjects = [], categories: serverC
 
     // Sort
     filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'title':
-          return a.title.localeCompare(b.title)
-        case '-title':
-          return b.title.localeCompare(a.title)
-        case 'createdAt':
-          return new Date(a.createdAt) - new Date(b.createdAt)
-        case '-createdAt':
-          return new Date(b.createdAt) - new Date(a.createdAt)
-        case 'featured':
-          return b.featured - a.featured
-        default:
-          return 0
+      try {
+        switch (sortBy) {
+          case 'title':
+            return (a.title || '').localeCompare(b.title || '')
+          case '-title':
+            return (b.title || '').localeCompare(a.title || '')
+          case 'createdAt':
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
+          case '-createdAt':
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+          case 'featured':
+            return (b.featured ? 1 : 0) - (a.featured ? 1 : 0)
+          default:
+            return 0
+        }
+      } catch {
+        return 0
       }
     })
 
