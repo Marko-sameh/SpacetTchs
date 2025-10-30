@@ -1,0 +1,72 @@
+/* Enhanced Scroll Animations */
+@keyframes slideInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(60px) scale(0.8) rotateX(20deg);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateY(20px) scale(0.95) rotateX(10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0);
+  }
+}
+
+@keyframes titleReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(50px) scale(0.9) rotateX(15deg);
+    filter: blur(10px);
+  }
+  60% {
+    opacity: 0.8;
+    transform: translateY(10px) scale(0.98) rotateX(5deg);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes cardFloat {
+  0%, 100% {
+    transform: translateY(0) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotateY(2deg);
+  }
+}
+
+.animate-in {
+  animation: slideInUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-in.title {
+  animation: titleReveal 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-in:hover {
+  animation: cardFloat 2s ease-in-out infinite;
+  box-shadow: 0 20px 40px rgba(0, 255, 255, 0.1), 0 0 20px rgba(147, 51, 234, 0.1);
+}
+
+/* Staggered animation delays */
+.animate-in:nth-child(1) { animation-delay: 0ms; }
+.animate-in:nth-child(2) { animation-delay: 150ms; }
+.animate-in:nth-child(3) { animation-delay: 300ms; }
+.animate-in:nth-child(4) { animation-delay: 450ms; }
+.animate-in:nth-child(5) { animation-delay: 600ms; }
+.animate-in:nth-child(6) { animation-delay: 750ms; }
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-in {
+    animation: none;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

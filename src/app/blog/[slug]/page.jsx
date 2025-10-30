@@ -1,6 +1,4 @@
-'use client'
-
-import { use, Suspense } from 'react'
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,37 +9,107 @@ import {
   User,
   Tag
 } from 'lucide-react'
-import { useBlog, useBlogs } from '@/hooks/useBlogs'
+import { generateBlogPostSchema, generateCanonicalUrl, generateOpenGraphImage } from '@/lib/seo'
+import { blogService } from '@/lib/services/blogService'
 
-const StarField3D = dynamic(() => import('@/components/3d/StarField3D').then(mod => ({ default: mod.StarField3D })))
-const ParticleField = dynamic(() => import('@/components/3d/ParticleField').then(mod => ({ default: mod.ParticleField })), { ssr: false })
-const Scene3D = dynamic(() => import('@/components/3d/Scene3D').then(mod => ({ default: mod.Scene3D })), { ssr: false })
+const StarField3D = dynamic(() => import('@/components/three/effects/StarField3D').then(mod => ({ default: mod.StarField3D })))
+const ParticleField = dynamic(() => import('@/components/three/objects/ParticleField').then(mod => ({ default: mod.ParticleField })))
+const Scene3D = dynamic(() => import('@/components/three/core/Scene3D').then(mod => ({ default: mod.Scene3D })))
 
-export default function BlogDetailPage({ params }) {
-  const { slug } = use(params)
-  const { data: blogData, isLoading, error } = useBlog(slug)
-  const { data: relatedData } = useBlogs({ limit: 3 })
+export async function generateMetadata({ params }) {
+  const { slug } = await params
 
-  if (isLoading) {
-    return (
-      <main className="text-white flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading blog post...</p>
-        </div>
-      </main>
-    )
+  try {
+    const response = await blogService.getBlog(slug)
+    const blog = response.data?.blog || response.data
+
+    if (!blog) {
+      return {
+        title: 'Blog Post Not Found - SpaceTechs',
+        description: 'The requested blog post could not be found.',
+      }
+    }
+
+    const title = `${blog.title} - SpaceTechs Blog`
+    const description = blog.summary || blog.description || 'Read the latest insights from SpaceTechs on web development, mobile apps, AI solutions, and digital marketing.'
+    const image = blog.coverImage ? generateOpenGraphImage(blog.coverImage) : 'https://spacetechs.net/images/og-blog-spacetechs.jpg'
+    const url = generateCanonicalUrl(`/blog/${slug}`)
+
+    return {
+      title,
+      description,
+      keywords: [
+        'SpaceTechs blog',
+        'web development blog',
+        'mobile app development insights',
+        'AI solutions articles',
+        'digital marketing tips',
+        ...(blog.tags || []),
+        blog.category?.name || 'Technology'
+      ],
+      authors: [{ name: blog.author || 'SpaceTechs Team' }],
+      openGraph: {
+        title,
+        description,
+        url,
+        type: 'article',
+        images: [
+          {
+            url: image,
+            width: 1200,
+            height: 630,
+            alt: blog.title,
+          },
+        ],
+        publishedTime: blog.createdAt || blog.datePublished,
+        modifiedTime: blog.updatedAt || blog.dateModified,
+        authors: [blog.author || 'SpaceTechs Team'],
+        section: blog.category?.name || 'Technology',
+        tags: blog.tags || [],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [image],
+        creator: '@spacetechs',
+      },
+      alternates: {
+        canonical: url,
+      },
+    }
+  } catch (error) {
+    console.error('Error generating blog metadata:', error)
+    return {
+      title: 'SpaceTechs Blog - Web Development, Mobile Apps, AI Solutions',
+      description: 'Read the latest insights from SpaceTechs on web development, mobile apps, AI solutions, and digital marketing.',
+    }
+  }
+}
+
+export default async function BlogDetailPage({ params }) {
+  const { slug } = await params
+
+  let blog = null
+  try {
+    const response = await blogService.getBlog(slug)
+    blog = response.data?.blog || response.data
+  } catch (error) {
+    console.error('Error fetching blog:', error)
   }
 
-  const blog = blogData?.data?.blog || blogData?.data
-  if (error || !blog) {
+  if (!blog) {
     return notFound()
   }
 
-  const relatedBlogs = relatedData?.data?.blogs?.filter(b => b?._id && b._id !== blog._id)?.slice(0, 3) || []
+  const blogSchema = generateBlogPostSchema(blog)
 
   return (
     <main className="text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
+      />
       <div className="fixed inset-0 -z-10 h-screen w-screen">
         <Suspense fallback={<div className="w-full h-full bg-gradient-to-br from-purple-900/10 to-cyan-900/10" />} suppressHydrationWarning>
           <Scene3D>

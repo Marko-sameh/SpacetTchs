@@ -1,4 +1,4 @@
-import apiClient from '../apiClient'
+import apiClient from '../api/client'
 
 export const blogService = {
   getBlogs: (params = {}) => apiClient.getBlogs(params),

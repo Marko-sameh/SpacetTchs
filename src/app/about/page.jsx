@@ -1,8 +1,35 @@
 import AboutClient from './AboutClient'
+import { BreadcrumbStructuredData, FAQStructuredData } from '@/components/SEO/StructuredData'
 
 export const metadata = {
-  title: 'About - SpaceTechs',
-  description: 'We build the future, one pixel at a time. Digital engineers crafting custom websites, mobile apps, AI systems, and marketing strategies.'
+  title: 'About SpaceTechs - Leading Web Development Company | Our Story & Expertise',
+  description: 'Learn about SpaceTechs, a premier web development company with expertise in custom websites, mobile app development, AI solutions, and digital marketing. Discover our mission to transform businesses through innovative technology.',
+  keywords: [
+    'about SpaceTechs', 'web development company story', 'mobile app development expertise',
+    'AI solutions provider background', 'digital marketing agency team', 'custom web development company',
+    'professional web developers', 'mobile app developers', 'AI specialists', 'digital marketing experts',
+    'web development services team', 'technology company background', 'software development expertise'
+  ],
+  openGraph: {
+    title: 'About SpaceTechs - Leading Web Development Company | Our Story & Expertise',
+    description: 'Learn about SpaceTechs, a premier web development company with expertise in custom websites, mobile app development, AI solutions, and digital marketing.',
+    url: 'https://spacetechs.net/about',
+    images: [
+      {
+        url: 'https://spacetechs.net/images/og-about-spacetechs-team.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'SpaceTechs Team - Web Development Company',
+      },
+    ],
+  },
+  twitter: {
+    title: 'About SpaceTechs - Leading Web Development Company | Our Story & Expertise',
+    description: 'Learn about SpaceTechs, a premier web development company with expertise in custom websites, mobile app development, AI solutions, and digital marketing.',
+  },
+  alternates: {
+    canonical: 'https://spacetechs.net/about',
+  },
 }
 
 const services = [
@@ -35,5 +62,31 @@ const whyUs = [
 ]
 
 export default function AboutPage() {
-  return <AboutClient services={services} whyUs={whyUs} />
+  const breadcrumbs = [
+    { name: 'Home', url: 'https://spacetechs.net' },
+    { name: 'About', url: 'https://spacetechs.net/about' }
+  ]
+
+  const faqs = [
+    {
+      question: 'What makes SpaceTechs different from other web development companies?',
+      answer: 'We combine cutting-edge technology with personalized service, offering custom solutions without templates, AI-powered features, and comprehensive digital marketing support.'
+    },
+    {
+      question: 'How long has SpaceTechs been in business?',
+      answer: 'SpaceTechs was founded in 2020 and has been delivering innovative web development, mobile apps, and AI solutions to clients worldwide.'
+    },
+    {
+      question: 'Do you work with startups or only established companies?',
+      answer: 'We work with businesses of all sizes, from startups to enterprise companies, providing scalable solutions that grow with your business.'
+    }
+  ]
+
+  return (
+    <>
+      <BreadcrumbStructuredData items={breadcrumbs} />
+      <FAQStructuredData faqs={faqs} />
+      <AboutClient services={services} whyUs={whyUs} />
+    </>
+  )
 }

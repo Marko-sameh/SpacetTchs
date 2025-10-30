@@ -3,14 +3,53 @@ import dynamic from 'next/dynamic'
 import ProjectsGrid from '@/components/ui/ProjectsGrid'
 import { projectService } from '@/lib/services/projectService'
 import { categoryService } from '@/lib/services/categoryService'
-import { ParticleField } from '@/components/3d/ParticleField'
+import { ParticleField } from '@/components/three/objects/ParticleField'
+import { BreadcrumbStructuredData } from '@/components/SEO/StructuredData'
 
-const StarField3D = dynamic(() => import('@/components/3d/StarField3D').then(mod => ({ default: mod.StarField3D })))
-const Scene3D = dynamic(() => import('@/components/3d/Scene3D'))
+const StarField3D = dynamic(() => import('@/components/three/effects/StarField3D').then(mod => ({ default: mod.StarField3D })))
+const Scene3D = dynamic(() => import('@/components/three/core/Scene3D'))
 
 export const metadata = {
-  title: 'Projects - Our Company',
-  description: 'Explore our portfolio of innovative projects and solutions.',
+  title: 'Our Projects - SpaceTechs Portfolio | Web Development & Mobile App Showcase',
+  description: 'Explore SpaceTechs portfolio of innovative web development projects, mobile applications, AI solutions, and digital marketing campaigns. See our expertise in action with real client projects and case studies.',
+  keywords: [
+    'SpaceTechs projects',
+    'web development portfolio',
+    'mobile app portfolio',
+    'AI solutions showcase',
+    'digital marketing projects',
+    'web development case studies',
+    'mobile app development examples',
+    'custom website projects',
+    'React projects',
+    'Next.js projects',
+    'React Native apps',
+    'Flutter apps',
+    'portfolio showcase',
+    'client projects',
+    'web development work',
+    'mobile development work'
+  ],
+  openGraph: {
+    title: 'Our Projects - SpaceTechs Portfolio | Web Development & Mobile App Showcase',
+    description: 'Explore SpaceTechs portfolio of innovative web development projects, mobile applications, AI solutions, and digital marketing campaigns.',
+    url: 'https://spacetechs.net/projects',
+    images: [
+      {
+        url: 'https://spacetechs.net/images/og-projects-spacetechs.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'SpaceTechs Projects Portfolio',
+      },
+    ],
+  },
+  twitter: {
+    title: 'Our Projects - SpaceTechs Portfolio | Web Development & Mobile App Showcase',
+    description: 'Explore SpaceTechs portfolio of innovative web development projects, mobile applications, AI solutions, and digital marketing campaigns.',
+  },
+  alternates: {
+    canonical: 'https://spacetechs.net/projects',
+  },
 }
 
 async function getProjectsData() {
@@ -88,8 +127,14 @@ export default async function ProjectsPage() {
   const { projects, categories } = await getProjectsData()
   console.log(projects);
 
+  const breadcrumbs = [
+    { name: 'Home', url: 'https://spacetechs.net' },
+    { name: 'Projects', url: 'https://spacetechs.net/projects' }
+  ]
+
   return (
     <main className="text-white">
+      <BreadcrumbStructuredData items={breadcrumbs} />
       <div className="fixed inset-0 -z-10 h-screen w-screen">
         <Suspense fallback={<div className="w-full h-full bg-gradient-to-br from-purple-900/10 to-cyan-900/10" />}>
           <Scene3D>

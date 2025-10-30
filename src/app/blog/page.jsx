@@ -5,12 +5,12 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useBlogs } from '@/hooks/useBlogs'
 import { motion } from 'framer-motion'
-import { BlogSkeleton } from '@/components/ui/LoadingSkeleton'
+import { BlogSkeleton } from '@/components/ui/common/LoadingSkeleton'
 
-const StarField3D = dynamic(() => import('@/components/3d/StarField3D').then(mod => ({ default: mod.StarField3D })))
+const StarField3D = dynamic(() => import('@/components/three/effects/StarField3D').then(mod => ({ default: mod.StarField3D })))
 
-const ParticleField = dynamic(() => import('@/components/3d/ParticleField').then(mod => ({ default: mod.ParticleField })), { ssr: false })
-const Scene3D = dynamic(() => import('@/components/3d/Scene3D').then(mod => ({ default: mod.Scene3D })), { ssr: false })
+const ParticleField = dynamic(() => import('@/components/three/objects/ParticleField').then(mod => ({ default: mod.ParticleField })), { ssr: false })
+const Scene3D = dynamic(() => import('@/components/three/core/Scene3D').then(mod => ({ default: mod.Scene3D })), { ssr: false })
 
 function BlogCard({ blog, index }) {
   return (

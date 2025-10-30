@@ -1,0 +1,30 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /private/
+
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /private/
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /private/
+
+# Host
+Host: https://spacetechs.net
+
+# Sitemaps
+Sitemap: https://spacetechs.net/sitemap.xml
+Sitemap: https://spacetechs.net/server-sitemap.xml

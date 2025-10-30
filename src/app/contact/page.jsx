@@ -1,18 +1,47 @@
 import { Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import { ContactForm } from '@/components/ContactForm'
+import { LocalBusinessStructuredData } from '@/components/SEO/StructuredData'
 
-const ParticleField = dynamic(() => import('@/components/3d/ParticleField').then(mod => ({ default: mod.ParticleField })))
-const Scene3D = dynamic(() => import('@/components/3d/Scene3D').then(mod => ({ default: mod.Scene3D })))
+const ParticleField = dynamic(() => import('@/components/three/objects/ParticleField').then(mod => ({ default: mod.ParticleField })))
+const Scene3D = dynamic(() => import('@/components/three/core/Scene3D').then(mod => ({ default: mod.Scene3D })))
 
 export const metadata = {
-  title: 'Contact - Speed Tech',
-  description: 'Get in touch for your next project'
+  title: 'Contact SpaceTechs - Web Development Company | Get Free Quote for Your Project',
+  description: 'Contact SpaceTechs for professional web development services, mobile app development, AI solutions, and digital marketing. Get a free quote for your custom website or mobile app project. Located in San Francisco, serving clients worldwide.',
+  keywords: [
+    'contact SpaceTechs', 'web development company contact', 'mobile app development quote',
+    'AI solutions consultation', 'digital marketing consultation', 'custom website quote',
+    'web development consultation', 'mobile app development consultation', 'free project quote',
+    'web development company San Francisco', 'contact web developers', 'hire web developers',
+    'custom web development quote', 'mobile app development cost', 'web development services contact'
+  ],
+  openGraph: {
+    title: 'Contact SpaceTechs - Web Development Company | Get Free Quote for Your Project',
+    description: 'Contact SpaceTechs for professional web development services, mobile app development, AI solutions, and digital marketing. Get a free quote for your project.',
+    url: 'https://spacetechs.net/contact',
+    images: [
+      {
+        url: 'https://spacetechs.net/images/og-contact-spacetechs.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Contact SpaceTechs - Web Development Company',
+      },
+    ],
+  },
+  twitter: {
+    title: 'Contact SpaceTechs - Web Development Company | Get Free Quote for Your Project',
+    description: 'Contact SpaceTechs for professional web development services, mobile app development, AI solutions, and digital marketing.',
+  },
+  alternates: {
+    canonical: 'https://spacetechs.net/contact',
+  },
 }
 
 export default function ContactPage() {
   return (
     <div className="min-h-screen pt-16 sm:pt-20">
+      <LocalBusinessStructuredData />
       <div className="absolute inset-0 z-0">
         <Suspense fallback={<div className="w-full h-full bg-gradient-to-br from-purple-900/10 to-cyan-900/10" />}>
           <Scene3D>

@@ -1,6 +1,9 @@
 'use client';
 
+import { motion } from 'framer-motion'
 import { useIsMobile } from "@/hooks/useMediaQuery";
+import { aboutVariants } from '@/lib/animations'
+import { useScrollAnimations } from '@/hooks/useScrollAnimations'
 
 const ANIMATION_CONFIG = {
     duration: (i) => 4 + (i % 3),
@@ -35,6 +38,7 @@ const SECTIONS = [
 
 export default function AboutUs() {
     const isMobile = useIsMobile();
+    const { prefersReducedMotion } = useScrollAnimations();
 
     return (
         <div className="relative w-full h-screen bg-black overflow-hidden">
@@ -56,14 +60,28 @@ export default function AboutUs() {
                 ))}
             </div>
 
-            <h1 className="absolute top-6 left-1/2 -translate-x-1/2 text-white text-lg sm:text-3xl font-bold z-10 tracking-widest">
+            <motion.h1 
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={aboutVariants.slideLeft}
+                className="absolute top-6 left-1/2 -translate-x-1/2 text-white text-lg sm:text-3xl font-bold z-10 tracking-widest"
+            >
                 About Us
-            </h1>
+            </motion.h1>
 
-            <div className="relative w-full h-full flex flex-col sm:flex-row z-10">
+            <motion.div 
+                variants={aboutVariants.container}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-20%' }}
+                className="relative w-full h-full flex flex-col sm:flex-row z-10"
+            >
                 {SECTIONS.map((section, index) => (
-                    <div
+                    <motion.div
                         key={section.id}
+                        variants={index % 2 === 0 ? aboutVariants.slideLeft : aboutVariants.slideRight}
+                        whileHover={prefersReducedMotion ? {} : { scale: 1.02, transition: { duration: 0.3 } }}
                         className={`relative flex-1 group cursor-pointer overflow-hidden ${index > 0 ? 'sm:-ml-32' : ''}`}
                         style={{ clipPath: isMobile ? 'none' : section.clipPath }}
                     >
@@ -88,9 +106,9 @@ export default function AboutUs() {
                             <div className="h-px w-16 sm:w-24 bg-white/50 mb-2 sm:mb-4"></div>
                             <p className="text-xs sm:text-sm tracking-[0.2em] sm:tracking-[0.3em] text-gray-300">{section.subtitle}</p>
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
-            </div>
+            </motion.div>
 
         </div>
     );

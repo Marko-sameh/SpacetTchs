@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { motion, useAnimation, useInView } from "framer-motion";
 import Link from "next/link";
-import { Button } from "./Button";
+import { Button } from "./common/Button";
 
 function ProjectHoverOverlay({ image }) {
     return null;
@@ -22,32 +22,136 @@ export default function SplitRevealSection({
         else controls.start('hidden');
     }, [inView, controls]);
 
+    const containerAnim = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.3,
+                delayChildren: 0.2
+            }
+        }
+    };
+
     const leftMask = {
-        hidden: { x: '-2%' },
-        visible: { x: '0%', transition: { duration: 0.9, ease: 'easeOut' } },
+        hidden: { 
+            x: '-100%', 
+            rotateY: -15,
+            scale: 0.8,
+            opacity: 0
+        },
+        visible: { 
+            x: '0%', 
+            rotateY: 0,
+            scale: 1,
+            opacity: 1,
+            transition: { 
+                duration: 1.2, 
+                ease: [0.25, 0.46, 0.45, 0.94],
+                type: "spring",
+                stiffness: 100
+            } 
+        },
     };
 
     const rightMask = {
-        hidden: { x: '2%' },
-        visible: { x: '0%', transition: { duration: 0.9, ease: 'easeOut' } },
+        hidden: { 
+            x: '100%', 
+            rotateY: 15,
+            scale: 0.8,
+            opacity: 0
+        },
+        visible: { 
+            x: '0%', 
+            rotateY: 0,
+            scale: 1,
+            opacity: 1,
+            transition: { 
+                duration: 1.2, 
+                ease: [0.25, 0.46, 0.45, 0.94],
+                type: "spring",
+                stiffness: 100,
+                delay: 0.1
+            } 
+        },
     };
 
     const textAnim = {
-        hidden: { opacity: 0, x: -40 },
-        visible: { opacity: 1, x: 0, transition: { delay: 0.2, duration: 0.7 } },
+        hidden: { 
+            opacity: 0, 
+            y: 50,
+            rotateX: -10
+        },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            rotateX: 0,
+            transition: { 
+                duration: 0.8,
+                ease: "easeOut"
+            } 
+        },
+    };
+
+    const titleAnim = {
+        hidden: { 
+            opacity: 0, 
+            y: 30,
+            scale: 0.9
+        },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            scale: 1,
+            transition: { 
+                duration: 0.6,
+                ease: "easeOut"
+            } 
+        },
+    };
+
+    const buttonAnim = {
+        hidden: { 
+            opacity: 0, 
+            scale: 0.8,
+            y: 20
+        },
+        visible: { 
+            opacity: 1, 
+            scale: 1,
+            y: 0,
+            transition: { 
+                duration: 0.5,
+                ease: "backOut"
+            } 
+        },
     };
 
     return (
         <section ref={ref} className="relative w-full min-h-screen flex items-center justify-center bg-[var(--background)]">
             <div className="container mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <motion.div className="relative z-10" initial="hidden" animate={controls}>
-                    <motion.h2 variants={textAnim} className="text-4xl lg:text-5xl font-heading font-bold text-[var(--text-primary)] mb-4">
+                <motion.div 
+                    className="relative z-10" 
+                    initial="hidden" 
+                    animate={controls}
+                    variants={containerAnim}
+                >
+                    <motion.h2 
+                        variants={titleAnim} 
+                        className="text-4xl lg:text-5xl font-heading font-bold text-[var(--text-primary)] mb-4"
+                    >
                         {title}
                     </motion.h2>
-                    <motion.p variants={textAnim} className="text-lg text-[var(--text-secondary)] max-w-xl mb-6">
+                    <motion.p 
+                        variants={textAnim} 
+                        className="text-lg text-[var(--text-secondary)] max-w-xl mb-6"
+                    >
                         {text}
                     </motion.p>
-                    <motion.div variants={textAnim} className="flex gap-4">
+                    <motion.div 
+                        variants={buttonAnim} 
+                        className="flex gap-4"
+                    >
                         <Link href={cta.href} className="inline-block px-6 py-3 bg-[var(--main-color)] hover:bg-[var(--main-color-hover)] text-white rounded-lg font-semibold shadow-lg">
                             <Button>
                                 {cta.label}
@@ -58,9 +162,20 @@ export default function SplitRevealSection({
 
                 <div className="relative w-full h-[420px] lg:h-[520px] rounded-2xl overflow-hidden">
                     <motion.div
-                        initial={{ scale: 1.06 }}
-                        animate={inView ? { scale: 1 } : { scale: 1.06 }}
-                        transition={{ duration: 1.2, ease: 'easeOut' }}
+                        initial={{ scale: 1.1, rotate: -2 }}
+                        animate={inView ? { 
+                            scale: 1, 
+                            rotate: 0,
+                            y: [0, -10, 0]
+                        } : { 
+                            scale: 1.1, 
+                            rotate: -2 
+                        }}
+                        transition={{ 
+                            scale: { duration: 1.5, ease: 'easeOut' },
+                            rotate: { duration: 1.5, ease: 'easeOut' },
+                            y: { duration: 4, repeat: Infinity, ease: 'easeInOut' }
+                        }}
                         className="absolute inset-0 bg-center bg-cover"
                         style={{ backgroundImage: `url(${image})` }}
                         aria-hidden

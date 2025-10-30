@@ -1,4 +1,4 @@
-import apiClient from '../apiClient'
+import apiClient from '../api/client'
 
 export const projectService = {
   getProjects: (params = {}) => apiClient.getProjects(params),

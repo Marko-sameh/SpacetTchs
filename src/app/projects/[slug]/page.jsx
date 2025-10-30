@@ -1,6 +1,4 @@
-'use client'
-
-import { use, Suspense } from 'react'
+import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -17,59 +15,101 @@ import {
   PlayCircle,
   PauseCircle
 } from 'lucide-react'
-import { useProject, useProjects } from '@/hooks/useProjects'
+import { generateProjectSchema, generateCanonicalUrl, generateOpenGraphImage } from '@/lib/seo'
+import { projectService } from '@/lib/services/projectService'
 
-const StarField3D = dynamic(() => import('@/components/3d/StarField3D').then(mod => ({ default: mod.StarField3D })))
-const ParticleField = dynamic(() => import('@/components/3d/ParticleField').then(mod => ({ default: mod.ParticleField })), { ssr: false })
-const Scene3D = dynamic(() => import('@/components/3d/Scene3D').then(mod => ({ default: mod.Scene3D })), { ssr: false })
+const StarField3D = dynamic(() => import('@/components/three/effects/StarField3D').then(mod => ({ default: mod.StarField3D })))
+const ParticleField = dynamic(() => import('@/components/three/objects/ParticleField').then(mod => ({ default: mod.ParticleField })))
+const Scene3D = dynamic(() => import('@/components/three/core/Scene3D').then(mod => ({ default: mod.Scene3D })))
+
+export async function generateMetadata({ params }) {
+  const { slug } = await params
+
+  try {
+    const response = await projectService.getProject(slug)
+    const project = response.data?.project
+
+    if (!project) {
+      return {
+        title: 'Project Not Found - SpaceTechs',
+        description: 'The requested project could not be found.',
+      }
+    }
+
+    const title = `${project.title} - SpaceTechs Project`
+    const description = project.description || 'Explore this innovative project by SpaceTechs showcasing our expertise in web development, mobile apps, and technology solutions.'
+    const image = project.images && project.images.length > 0 ? generateOpenGraphImage(project.images[0]) : 'https://spacetechs.net/images/og-projects-spacetechs.jpg'
+    const url = generateCanonicalUrl(`/projects/${slug}`)
+
+    return {
+      title,
+      description,
+      keywords: [
+        'SpaceTechs project',
+        project.title,
+        project.category?.name || 'Web Development',
+        ...(project.technologies || []),
+        'portfolio project',
+        'case study',
+        'web development project',
+        'mobile app project'
+      ],
+      openGraph: {
+        title,
+        description,
+        url,
+        type: 'article',
+        images: [
+          {
+            url: image,
+            width: 1200,
+            height: 630,
+            alt: project.title,
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [image],
+        creator: '@spacetechs',
+      },
+      alternates: {
+        canonical: url,
+      },
+    }
+  } catch (error) {
+    console.error('Error generating project metadata:', error)
+    return {
+      title: 'SpaceTechs Projects - Web Development Portfolio',
+      description: 'Explore our portfolio of innovative projects and solutions.',
+    }
+  }
+}
 
 
 
 const gridStyle = { transformStyle: 'preserve-3d', transform: 'rotateX(5deg)' };
 
-export default function ProjectDetailPage({ params }) {
-  const { slug } = use(params)
-  const { data: projectData, isLoading, error } = useProject(slug)
-  const { data: relatedData } = useProjects({ limit: 3 })
-  console.log(projectData);
+export default async function ProjectDetailPage({ params }) {
+  const { slug } = await params
 
-
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading project...</p>
-        </div>
-      </main>
-    )
+  let project = null
+  try {
+    const response = await projectService.getProject(slug)
+    project = response.data?.project
+  } catch (error) {
+    console.error('Error fetching project:', error)
   }
 
-  if (error) {
-    return notFound()
-  }
-
-  const project = projectData?.data?.project
   if (!project) {
     return notFound()
   }
 
-  const relatedProjects = relatedData?.data?.projects?.filter(p => p?._id && p._id !== project._id)?.slice(0, 3) || [
-    {
-      _id: '2',
-      title: 'E-Commerce Platform',
-      slug: 'ecommerce-platform',
-      description: 'Full-stack e-commerce solution with payment integration.',
-      images: ['https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop']
-    },
-    {
-      _id: '3',
-      title: 'Mobile Banking App',
-      slug: 'mobile-banking-app',
-      description: 'Secure mobile banking with biometric authentication.',
-      images: ['https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop']
-    }
-  ]
+  const projectSchema = generateProjectSchema(project)
+
+
 
   const statusIcons = {
     'Completed': <CheckCircle className="text-green-400" size={20} />,
@@ -85,6 +125,10 @@ export default function ProjectDetailPage({ params }) {
 
   return (
     <main className="text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(projectSchema) }}
+      />
       <div className="fixed inset-0 -z-10 h-screen w-screen">
         <Suspense fallback={<div className="w-full h-full bg-gradient-to-br from-purple-900/10 to-cyan-900/10" />}>
           <Scene3D>

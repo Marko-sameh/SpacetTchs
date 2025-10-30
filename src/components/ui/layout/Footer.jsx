@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Github, Linkedin, X } from 'lucide-react'
+import { footerVariants } from '@/lib/animations'
+import { useScrollAnimations } from '@/hooks/useScrollAnimations'
 
 const WAVE_VARIANTS = {
   animate: {
@@ -23,6 +25,7 @@ const STATIC_WAVE_PATH = "M0,96L48,112C96,128,192,160,288,160C384,160,480,128,57
 
 export function Footer() {
   const [mounted, setMounted] = useState(false)
+  const { prefersReducedMotion } = useScrollAnimations()
 
   useEffect(() => {
     setMounted(true)
@@ -64,41 +67,45 @@ export function Footer() {
       <div className="relative pt-20 pb-8">
         <div className="container-responsive">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            variants={footerVariants.container}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-10%' }}
             className="text-center space-y-6"
           >
-            <h3 className="text-3xl font-bold ">
-              Speed Tech
-            </h3>
+            <motion.h3 
+              variants={footerVariants.scaleUp}
+              className="text-3xl font-bold"
+            >
+              SpaceTechs
+            </motion.h3>
 
-            <div className="flex justify-center space-x-6">
-              {SOCIAL_LINKS.map(({ icon: Icon, href, label }) => (
+            <motion.div 
+              variants={footerVariants.scaleUp}
+              className="flex justify-center space-x-6"
+            >
+              {SOCIAL_LINKS.map(({ icon: Icon, href, label }, index) => (
                 <motion.a
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  whileHover={{ y: -3, scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
+                  variants={footerVariants.scaleUp}
+                  whileHover={prefersReducedMotion ? {} : { y: -3, scale: 1.1 }}
+                  whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
                   className="p-3 glass rounded-full hover:border-accent transition-all duration-300"
                   aria-label={label}
                 >
                   <Icon className="w-5 h-5 text-text" />
                 </motion.a>
               ))}
-            </div>
+            </motion.div>
 
             <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+              variants={footerVariants.scaleUp}
               className="text-text-muted text-sm"
             >
-              © 2025 Speed Tech. All rights reserved
+              © 2025 SpaceTechs. All rights reserved
             </motion.p>
           </motion.div>
         </div>

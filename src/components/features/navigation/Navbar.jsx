@@ -1,26 +1,59 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useUIStore } from '@/stores/useUIStore'
+import { useUIStore } from '@/stores/ui/useUIStore'
 
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import logo from "@/../public/logo_wbg.png"
 
 
-export function Navbar() {
+export const Navbar = memo(function Navbar() {
   const [scrolled, setScrolled] = useState(false)
   const { isMenuOpen, setMenuOpen } = useUIStore()
   const pathname = usePathname()
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(typeof window !== 'undefined' && window.scrollY > 50)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    let rafId = null
+    let lastScrollY = 0
+    let ticking = false
+
+    const handleScroll = () => {
+      if (!ticking) {
+        rafId = requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY
+          // Only update if scroll changed significantly (100px threshold)
+          if (Math.abs(currentScrollY - lastScrollY) >= 100) {
+            setScrolled(currentScrollY > 50)
+            lastScrollY = currentScrollY
+          }
+          ticking = false
+        })
+        ticking = true
+      }
+    }
+
+    // Throttle to maximum 10fps
+    let throttleTimeout = null
+    const throttledScroll = () => {
+      if (!throttleTimeout) {
+        throttleTimeout = setTimeout(() => {
+          handleScroll()
+          throttleTimeout = null
+        }, 100)
+      }
+    }
+
+    window.addEventListener('scroll', throttledScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', throttledScroll)
+      if (rafId) cancelAnimationFrame(rafId)
+      if (throttleTimeout) clearTimeout(throttleTimeout)
+    }
   }, [])
 
   const navItems = [
@@ -47,13 +80,13 @@ export function Navbar() {
           <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
             <Image
               src={logo}
-              alt="Speed Tech Logo"
+              alt="SpaceTechs Logo"
               width={80}
               height={80}
               className="w-12 h-12 sm:w-22 sm:h-22"
             />
             <span className="text-lg sm:text-xl font-bold  font-display">
-              Speed Tech
+              SpaceTechs
             </span>
           </Link>
 
@@ -144,4 +177,4 @@ export function Navbar() {
       </AnimatePresence>
     </motion.nav>
   )
-}
+})

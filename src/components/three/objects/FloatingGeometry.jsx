@@ -4,78 +4,22 @@ import { useRef, useMemo, memo, Suspense, useState, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Text, Stars, OrbitControls, Html } from '@react-three/drei'
 import * as THREE from 'three'
-import { Button } from '../ui/Button'
+import { Button } from '@/components/ui/Button'
 import Loading from '@/app/loading'
+import Link from 'next/link'
 
 // Constants for performance
-const TILT_ANGLE = THREE.MathUtils.degToRad(30.7)
+const TILT_ANGLE = 0
 const RING_ROTATION_SPEED = 0.00005
 const PLANET_ROTATION_SPEED = 0.0008
 const MOON_ROTATION_SPEED = 0.005
 
-// Memoized ring configuration for performance
-const RING_CONFIG = [
-  { start: 0.25, end: 0.35, alpha: 0.9, color: '#d4b06a' },
-  { start: 0.35, end: 0.45, alpha: 0.4, color: '#a68b6b' },
-  { start: 0.45, end: 0.65, alpha: 0.85, color: '#c7a15a' },
-  { start: 0.65, end: 0.75, alpha: 0.2, color: '#8c7358' },
-  { start: 0.75, end: 1, alpha: 0.6, color: '#bca06d' }
-];
-
-// // 🪐 Planet Rings (optimized)
-// const PlanetRings = memo(() => {
-//   const ringsRef = useRef()
-
-//   const ringTexture = useMemo(() => {
-//     const canvas = document.createElement('canvas')
-//     canvas.width = 2048
-//     canvas.height = 256
-//     const ctx = canvas.getContext('2d')
-
-//     RING_CONFIG.forEach(ring => {
-//       const gradient = ctx.createLinearGradient(ring.start * 2048, 0, ring.end * 2048, 0)
-//       const alphaHex = Math.floor(ring.alpha * 255).toString(16).padStart(2, '0')
-//       gradient.addColorStop(0, `${ring.color}00`)
-//       gradient.addColorStop(0.1, `${ring.color}${alphaHex}`)
-//       gradient.addColorStop(0.9, `${ring.color}${alphaHex}`)
-//       gradient.addColorStop(1, `${ring.color}00`)
-//       ctx.fillStyle = gradient
-//       ctx.fillRect(ring.start * 2048, 0, (ring.end - ring.start) * 2048, 256)
-//     })
-
-//     const texture = new THREE.CanvasTexture(canvas)
-//     texture.wrapS = THREE.ClampToEdgeWrapping
-//     texture.wrapT = THREE.ClampToEdgeWrapping
-//     texture.anisotropy = 16
-//     return texture
-//   }, [])
-
-//   useFrame(() => {
-//     if (ringsRef.current) {
-//       ringsRef.current.rotation.z += RING_ROTATION_SPEED
-//     }
-//   })
-
-//   return (
-//     <mesh ref={ringsRef} rotation={[Math.PI / 2, 0, 0]}>
-//       <ringGeometry args={[2.6, 4.3, 256]} />
-//       <meshStandardMaterial
-//         map={ringTexture}
-//         transparent
-//         side={THREE.DoubleSide}
-//         opacity={0.9}
-//         roughness={0.8}
-//         metalness={0.3}
-//       />
-//     </mesh>
-//   )
-// })
 
 // 🌍 Main Planet (optimized)
 const Jupiter = memo(() => {
   const ref = useRef()
   const [texture, setTexture] = useState(null)
-  
+
   useEffect(() => {
     const loader = new THREE.TextureLoader()
     loader.load(
@@ -113,12 +57,13 @@ const Jupiter = memo(() => {
   )
 })
 
-// 🌕 Optimized Moon component
-const Moon = memo(({ distance = 3, speed = 0.3, label = '', size = 0.25 }) => {
+// 🌕 Optimized Moon component (with separated orbits)
+const Moon = memo(({ distance = 3, speed = 0.3, label = '', size = 0.25, angleOffset = 0 }) => {
   const moonRef = useRef()
   const textRef = useRef()
   const [moonTexture, setMoonTexture] = useState(null)
-  
+
+  // 🌀 Load moon texture efficiently
   useEffect(() => {
     const loader = new THREE.TextureLoader()
     loader.load(
@@ -130,12 +75,13 @@ const Moon = memo(({ distance = 3, speed = 0.3, label = '', size = 0.25 }) => {
       },
       undefined,
       (error) => {
-        console.warn('Moon texture failed to load, using fallback')
+        console.warn('⚠️ Moon texture failed to load, using fallback')
         setMoonTexture(null)
       }
     )
   }, [])
 
+  // 🧱 Reuse material & geometry
   const material = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       map: moonTexture,
@@ -147,11 +93,14 @@ const Moon = memo(({ distance = 3, speed = 0.3, label = '', size = 0.25 }) => {
 
   const geometry = useMemo(() => new THREE.SphereGeometry(size, 32, 32), [size])
 
+  // 🎬 Animate orbit and rotation
   useFrame((state) => {
     const t = state.clock.elapsedTime * speed
-    const x = Math.cos(t) * distance
-    const y = Math.sin(t) * distance * Math.sin(TILT_ANGLE)
-    const z = Math.sin(t) * distance * Math.cos(TILT_ANGLE)
+
+    // كل قمر عنده زاوية بداية مختلفة (angleOffset)
+    const x = Math.cos(t + angleOffset) * distance
+    const y = Math.sin(t + angleOffset) * distance * Math.sin(TILT_ANGLE)
+    const z = Math.sin(t + angleOffset) * distance * Math.cos(TILT_ANGLE)
 
     if (moonRef.current) {
       moonRef.current.position.set(x, y, z)
@@ -180,16 +129,17 @@ const Moon = memo(({ distance = 3, speed = 0.3, label = '', size = 0.25 }) => {
         {label}
       </Text>
     </>
-  );
+  )
 })
 
 // Memoized moon configurations
 const MOON_CONFIGS = [
-  { distance: 2.5, speed: 0.15, label: "Web", size: 0.15 },
-  { distance: 3.3, speed: 0.1, label: "Mobile", size: 0.18 },
-  { distance: 4.0, speed: 0.09, label: "AI", size: 0.22 },
-  { distance: 4.3, speed: 0.05, label: "Digital Marketing", size: 0.24 }
+  { distance: 2.5, speed: 0.2, label: "Web", size: 0.1, angleOffset: 0 },
+  { distance: 3, speed: 0.1, label: "Mobile", size: 0.3, angleOffset: Math.PI / 4 },
+  { distance: 3.6, speed: 0.2, label: "AI", size: 0.2, angleOffset: Math.PI / 2 },
+  { distance: 4.5, speed: 0.1, label: "Digital Marketing", size: 0.4, angleOffset: (3 * Math.PI) / 4 }
 ];
+
 
 export default memo(function FloatingGeometry({ ctaText = '' }) {
   const { scene } = useThree()
@@ -224,14 +174,12 @@ export default memo(function FloatingGeometry({ ctaText = '' }) {
       </group>
 
       {ctaText && (
-        <Html position={[0, -3.5, 0]} center>
-          <div className="pointer-events-auto">
-            <a href="/projects" className="block w-full">
-              <button className="w-[12rem] sm:w-[16rem] px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-cyan-500 to-purple-600 text-white rounded-lg hover:from-cyan-400 hover:to-purple-500 transition-all font-medium">
-                {ctaText}
-              </button>
-            </a>
-          </div>
+        <Html position={[0, -3, 0]} center transform occlude>
+          <Link href="/projects" className="block pointer-events-auto">
+            <button className="w-[6rem] sm:w-[10rem] px-2 sm:px-2 py-2 sm:py-2 text-sm  text-white glass border-border hover:border-accent hover:bg-accent/5 transition-all ">
+              {ctaText}
+            </button>
+          </Link>
         </Html>
       )}
 

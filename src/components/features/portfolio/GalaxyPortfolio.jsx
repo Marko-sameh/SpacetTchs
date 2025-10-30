@@ -1,13 +1,14 @@
 'use client'
 
-import { Canvas } from '@react-three/fiber'
+import OptimizedCanvas from '../../three/core/OptimizedCanvas'
 import { OrbitControls, Stars, Float, Text, Sphere, useProgress, Html } from '@react-three/drei'
 import { motion } from 'framer-motion'
 import React, { useRef, useState, useEffect, useMemo, Suspense, memo, useCallback } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { Button } from '../ui/Button'
-import { useProjects } from '@/hooks/useProjects'
+import { Button } from '../../ui/common/Button'
+import { useProjects } from '@/hooks/api/useProjects'
+import { useThrottledScroll } from '@/hooks/ui/useThrottledScroll'
 
 // Performance constants
 const ANIMATION_SPEEDS = {
@@ -93,13 +94,12 @@ const generateDynamicPositions = (() => {
   }
 })()
 
-// Optimized project transformation with memoization
+// Optimized project transformation with deep memoization
 const transformProjectsForGalaxy = (() => {
-  let lastProjects = null
-  let lastResult = null
+  const cache = new WeakMap()
 
   return (projects) => {
-    if (projects === lastProjects) return lastResult
+    if (cache.has(projects)) return cache.get(projects)
 
     const { maxProjects } = PERFORMANCE_CONFIG
     const limitedProjects = projects.slice(0, maxProjects)
@@ -107,7 +107,7 @@ const transformProjectsForGalaxy = (() => {
 
     const result = limitedProjects.map((project, index) => {
       const colorSet = COLOR_PALETTE[index % COLOR_PALETTE.length]
-      return {
+      return Object.freeze({
         id: project._id || project.id,
         name: project.title || project.name,
         position: dynamicPositions[index],
@@ -116,42 +116,134 @@ const transformProjectsForGalaxy = (() => {
         description: project.description,
         image: project.images?.[0] || 'https://images.unsplash.com/photo-1614732414444-096e5f1122d5?w=512&h=512&fit=crop&q=80&fm=webp',
         slug: project.slug
-      }
+      })
     })
 
-    lastProjects = projects
-    lastResult = result
-    return result
+    const frozenResult = Object.freeze(result)
+    cache.set(projects, frozenResult)
+    return frozenResult
   }
 })()
 
 const Planet = memo(function Planet({ project, onHover, onSelect, isHovered, isSelected, prefersReducedMotion }) {
   const meshRef = useRef()
   const textRef = useRef()
+  const lastUpdate = useRef(0)
 
-  const timeOffset = useMemo(() => typeof project.id === 'string' ? project.id.length : project.id, [project.id])
+  // Create procedural textures for realistic planet surface
+  const { colorTexture, normalTexture, displacementTexture } = useMemo(() => {
+    const size = 512
+
+    // Color texture with horizontal bands
+    const colorCanvas = document.createElement('canvas')
+    colorCanvas.width = colorCanvas.height = size
+    const colorCtx = colorCanvas.getContext('2d')
+
+    const baseColor = new THREE.Color(project.color)
+    const lightColor = new THREE.Color(project.colorVariants?.light || project.color).multiplyScalar(1.2)
+    const darkColor = new THREE.Color(project.colorVariants?.dark || project.color).multiplyScalar(0.7)
+
+    // Create horizontal bands
+    for (let y = 0; y < size; y++) {
+      const bandIndex = Math.floor((y / size) * 8) // 8 bands
+      const noise = (Math.sin(y * 0.1) + Math.sin(y * 0.03)) * 0.1
+      const bandColor = bandIndex % 2 === 0 ?
+        baseColor.clone().lerp(lightColor, 0.3 + noise) :
+        baseColor.clone().lerp(darkColor, 0.2 + noise)
+
+      colorCtx.fillStyle = `rgb(${Math.floor(bandColor.r * 255)}, ${Math.floor(bandColor.g * 255)}, ${Math.floor(bandColor.b * 255)})`
+      colorCtx.fillRect(0, y, size, 1)
+    }
+
+    // Add surface details (craters/spots)
+    for (let i = 0; i < 20; i++) {
+      const x = Math.random() * size
+      const y = Math.random() * size
+      const radius = 5 + Math.random() * 15
+
+      const gradient = colorCtx.createRadialGradient(x, y, 0, x, y, radius)
+      gradient.addColorStop(0, `rgba(${Math.floor(darkColor.r * 255)}, ${Math.floor(darkColor.g * 255)}, ${Math.floor(darkColor.b * 255)}, 0.8)`)
+      gradient.addColorStop(1, 'rgba(0,0,0,0)')
+
+      colorCtx.fillStyle = gradient
+      colorCtx.beginPath()
+      colorCtx.arc(x, y, radius, 0, Math.PI * 2)
+      colorCtx.fill()
+    }
+
+    // Normal map for surface bumps
+    const normalCanvas = document.createElement('canvas')
+    normalCanvas.width = normalCanvas.height = size
+    const normalCtx = normalCanvas.getContext('2d')
+
+    const imageData = normalCtx.createImageData(size, size)
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const x = (i / 4) % size
+      const y = Math.floor((i / 4) / size)
+
+      // Create surface normal variations
+      const noise = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 0.5 + 0.5
+      imageData.data[i] = 128 + noise * 50     // R (X normal)
+      imageData.data[i + 1] = 128 + noise * 50 // G (Y normal)
+      imageData.data[i + 2] = 255              // B (Z normal)
+      imageData.data[i + 3] = 255              // A
+    }
+    normalCtx.putImageData(imageData, 0, 0)
+
+    // Displacement map for surface height
+    const dispCanvas = document.createElement('canvas')
+    dispCanvas.width = dispCanvas.height = size
+    const dispCtx = dispCanvas.getContext('2d')
+
+    const dispImageData = dispCtx.createImageData(size, size)
+    for (let i = 0; i < dispImageData.data.length; i += 4) {
+      const x = (i / 4) % size
+      const y = Math.floor((i / 4) / size)
+
+      // Create height variations for craters and bands
+      const bandHeight = Math.sin((y / size) * Math.PI * 8) * 0.3 + 0.5
+      const craterNoise = Math.random() * 0.2
+      const height = Math.floor((bandHeight + craterNoise) * 255)
+
+      dispImageData.data[i] = height     // R
+      dispImageData.data[i + 1] = height // G
+      dispImageData.data[i + 2] = height // B
+      dispImageData.data[i + 3] = 255    // A
+    }
+    dispCtx.putImageData(dispImageData, 0, 0)
+
+    return {
+      colorTexture: new THREE.CanvasTexture(colorCanvas),
+      normalTexture: new THREE.CanvasTexture(normalCanvas),
+      displacementTexture: new THREE.CanvasTexture(dispCanvas)
+    }
+  }, [project.color, project.colorVariants])
 
   useEffect(() => {
     return () => {
       if (meshRef.current) {
         meshRef.current.geometry?.dispose()
         meshRef.current.material?.dispose()
-        meshRef.current.material?.map?.dispose()
+        colorTexture?.dispose()
+        normalTexture?.dispose()
+        displacementTexture?.dispose()
       }
     }
-  }, [])
+  }, [colorTexture, normalTexture, displacementTexture])
 
   useFrame((state, delta) => {
     if (!meshRef.current || prefersReducedMotion) return
 
-    // Frame-rate independent animation
-    meshRef.current.rotation.y += ANIMATION_SPEEDS.planetRotationY * delta * 60
-    meshRef.current.rotation.x += ANIMATION_SPEEDS.planetRotationX * delta * 60
+    if (state.clock.elapsedTime - lastUpdate.current < 0.05) return
 
-    // Throttled text rotation for performance
-    if (textRef.current && isHovered && state.clock.elapsedTime % PERFORMANCE_CONFIG.throttleInterval < delta) {
+    meshRef.current.rotation.y += ANIMATION_SPEEDS.planetRotationY
+    meshRef.current.rotation.x += ANIMATION_SPEEDS.planetRotationX
+
+    if (textRef.current && isHovered) {
       textRef.current.lookAt(state.camera.position)
     }
+
+    lastUpdate.current = state.clock.elapsedTime
   })
 
   return (
@@ -166,124 +258,51 @@ const Planet = memo(function Planet({ project, onHover, onSelect, isHovered, isS
           onSelect(project.id)
         }}
       >
-        <Sphere ref={meshRef} args={[0.8, 32, 32]}>
+        <mesh ref={meshRef}>
+          <sphereGeometry args={[0.8, 64, 64]} />
           <meshStandardMaterial
-            color={project.color}
-            roughness={0.7}
+            map={colorTexture}
+            normalMap={normalTexture}
+            displacementMap={displacementTexture}
+            displacementScale={0.01}
+            roughness={0.9}
             metalness={0.1}
+            normalScale={[1, 1]}
           />
-        </Sphere>
+        </mesh>
 
-        {/* Latitude lines */}
-        {[0.2, 0.4, -0.2, -0.4].map((y, i) => (
-          <mesh key={`lat-${i}`} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[Math.sqrt(0.64 - y * y) - 0.01, Math.sqrt(0.64 - y * y), 64]} />
-            <meshBasicMaterial color={project.colorVariants?.light || "#ffffff"} transparent opacity={0.6} />
-          </mesh>
-        ))}
-
-        {/* Longitude lines */}
-        {[0, Math.PI / 3, (2 * Math.PI) / 3, Math.PI, (4 * Math.PI) / 3, (5 * Math.PI) / 3].map((angle, i) => (
-          <mesh key={`lon-${i}`} rotation={[0, angle, 0]}>
-            <ringGeometry args={[0.79, 0.81, 32, 1, 0, Math.PI]} />
-            <meshBasicMaterial color={project.colorVariants?.light || "#ffffff"} transparent opacity={0.4} side={THREE.DoubleSide} />
-          </mesh>
-        ))}
-
-        {/* Engraved text effect */}
-        <group>
-          {/* Shadow layer (deepest) */}
-          <Text
-            position={[0.01, -0.01, 0.795]}
-            fontSize={0.12}
-            color="#000000"
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={1.4}
-            letterSpacing={0.02}
-            fillOpacity={0.6}
-          >
-            {project.name}
-          </Text>
-
-          {/* Main carved text */}
-          <Text
-            position={[0, 0, 0.798]}
-            fontSize={0.12}
-            color={project.colorVariants?.light || "#ffffff"}
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={1.4}
-            letterSpacing={0.02}
-            fillOpacity={0}
-            strokeWidth={0.005}
-            strokeColor={project.colorVariants?.light || "#ffffff"}
-            material-transparent={true}
-            material-depthTest={false}
-          >
-            {project.name}
-          </Text>
-
-          {/* Highlight layer (top edge) */}
-          <Text
-            position={[-0.005, 0.005, 0.801]}
-            fontSize={0.12}
-            color={project.colorVariants?.light || "#ffffff"}
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={1.4}
-            letterSpacing={0.02}
-            fillOpacity={0.3}
-          >
-            {project.name}
-          </Text>
-        </group>
-
-        {(isHovered || isSelected) && (
-          <Sphere args={[1.2, 16, 16]}>
-            <meshBasicMaterial
-              color={project.color}
-              transparent
-              opacity={0.15}
-              side={THREE.BackSide}
-            />
-          </Sphere>
-        )}
+        <Text
+          position={[0, 1.2, 0]}
+          fontSize={0.15}
+          color={project.colorVariants?.light || "#ffffff"}
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={2}
+        >
+          {project.name}
+        </Text>
 
         {isHovered && (
           <>
+            <mesh>
+              <sphereGeometry args={[1.1, 16, 16]} />
+              <meshBasicMaterial
+                color={project.color}
+                transparent
+                opacity={0.2}
+                side={THREE.BackSide}
+              />
+            </mesh>
             <Text
               ref={textRef}
-              position={[0, 1.5, 0]}
-              fontSize={0.3}
+              position={[0, 1.2, 0]}
+              fontSize={0.2}
               color={project.color}
               anchorX="center"
               anchorY="middle"
-              outlineWidth={0.03}
-              outlineColor="#000000"
             >
               {project.name}
             </Text>
-            {/* Hover Ring Effect */}
-            <mesh position={[0, 0, 0]}>
-              <ringGeometry args={[1.1, 1.3, 32]} />
-              <meshBasicMaterial
-                color={project.color}
-                transparent
-                opacity={0.6}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
-            {/* Particle Ring */}
-            <mesh position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[1.4, 1.5, 64]} />
-              <meshBasicMaterial
-                color={project.color}
-                transparent
-                opacity={0.3}
-                side={THREE.DoubleSide}
-              />
-            </mesh>
           </>
         )}
       </group>
@@ -291,54 +310,23 @@ const Planet = memo(function Planet({ project, onHover, onSelect, isHovered, isS
   )
 })
 
-const CameraController = memo(function CameraController({ disabled }) {
-  useFrame((state, delta) => {
-    if (disabled) return
-    const time = state.clock.elapsedTime * ANIMATION_SPEEDS.cameraOrbit
-    state.camera.position.x = Math.sin(time) * 1.5
-    state.camera.position.y = Math.cos(time * 0.5) * 0.8
-    state.camera.lookAt(0, 0, 0)
-  })
 
-  return null
-})
-
-const Nebula = memo(function Nebula({ prefersReducedMotion }) {
-  const meshRef = useRef()
-
-  useFrame((state, delta) => {
-    if (!meshRef.current || prefersReducedMotion) return
-    meshRef.current.rotation.z += 0.001 * delta * 60
-    // Throttle opacity updates
-    if (state.clock.elapsedTime % 0.2 < delta) {
-      meshRef.current.material.opacity = 0.1 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05
-    }
-  })
-
-  return (
-    <Sphere ref={meshRef} args={[50, 32, 32]}>
-      <meshBasicMaterial
-        color="#4a0e4e"
-        transparent
-        opacity={0.1}
-        side={THREE.BackSide}
-      />
-    </Sphere>
-  )
-})
 
 const ScrollStars = memo(function ScrollStars({ scrollY, prefersReducedMotion }) {
   const starsRef = useRef()
   const lastScrollY = useRef(scrollY)
+  const lastUpdate = useRef(0)
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!starsRef.current || prefersReducedMotion) return
-    // Only update if scroll changed significantly
-    if (Math.abs(scrollY - lastScrollY.current) > 10) {
-      starsRef.current.rotation.y = scrollY * 0.0001
-      starsRef.current.rotation.x = scrollY * 0.00005
-      lastScrollY.current = scrollY
-    }
+
+    // Ultra-throttled updates to 5fps and larger scroll threshold
+    if (state.clock.elapsedTime - lastUpdate.current < 0.2 || Math.abs(scrollY - lastScrollY.current) < 50) return
+
+    lastUpdate.current = state.clock.elapsedTime
+    starsRef.current.rotation.y = scrollY * 0.00008
+    starsRef.current.rotation.x = scrollY * 0.00004
+    lastScrollY.current = scrollY
   })
 
   return (
@@ -346,27 +334,27 @@ const ScrollStars = memo(function ScrollStars({ scrollY, prefersReducedMotion })
       ref={starsRef}
       radius={100}
       depth={50}
-      count={5000}
-      factor={4}
+      count={isMobile ? 800 : 1500}
+      factor={3}
       saturation={0}
       fade
-      speed={1}
+      speed={0.5}
     />
   )
 })
 
-function LoadingFallback() {
+const LoadingFallback = memo(function LoadingFallback() {
   return (
     <mesh>
-      <sphereGeometry args={[0.5, 16, 16]} />
+      <sphereGeometry args={[0.5, 8, 8]} />
       <meshBasicMaterial color="#00ffff" wireframe opacity={0.5} transparent />
     </mesh>
   )
-}
+})
 
 
 // Enhanced Global loading screen
-function GlobalLoader() {
+const GlobalLoader = memo(function GlobalLoader() {
   const { progress } = useProgress()
 
   return (
@@ -442,12 +430,12 @@ function GlobalLoader() {
       </div>
     </div>
   )
-}
+})
 
-export default function GalaxyPortfolio() {
+const GalaxyPortfolio = memo(function GalaxyPortfolio() {
   const [hoveredPlanet, setHoveredPlanet] = useState(null)
   const [selectedPlanet, setSelectedPlanet] = useState(null)
-  const [scrollY, setScrollY] = useState(0)
+  const scrollY = useThrottledScroll(32) // 30fps for smooth UX
 
   const { data: projectsData, isLoading, error } = useProjects()
   const projects = useMemo(() => {
@@ -475,20 +463,7 @@ export default function GalaxyPortfolio() {
     [selectedPlanet, projectsMap]
   )
 
-  useEffect(() => {
-    let ticking = false
-    const handleScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          setScrollY(window.scrollY)
-          ticking = false
-        })
-        ticking = true
-      }
-    }
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  // Scroll handling moved to useThrottledScroll hook
 
   const handleSelect = useCallback((id) => {
     setSelectedPlanet((prev) => (prev === id ? null : id))
@@ -542,29 +517,23 @@ export default function GalaxyPortfolio() {
           </a>
         </nav>
 
-        {/* 🪐 3D Canvas */}
-        <Canvas
+        {/* 🪐 Optimized 3D Canvas */}
+        <OptimizedCanvas
           camera={{
-            position: isMobile ? [0, 0, 7] : [0, 0, 5],
-            fov: 70,
+            position: isMobile ? [0, 0, 15] : [0, 0, 12],
+            fov: 75,
           }}
-          gl={{
-            antialias: !isMobile,
-            alpha: true,
-            powerPreference: 'high-performance',
-            pixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio, 2) : 1
-          }}
+          isMobile={isMobile}
         >
-          <ambientLight intensity={0.4} />
-          <pointLight position={[5, 5, 5]} color="#00ffff" intensity={1.2} />
-          <pointLight position={[-5, -5, -5]} color="#ff00ff" intensity={0.8} />
-          <pointLight position={[0, 8, 0]} color="#ffffff" intensity={0.6} />
-          <directionalLight position={[10, 10, 5]} color="#4a90e2" intensity={0.3} />
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[10, 10, 5]} color="#ffffff" intensity={2.0} castShadow />
+          <pointLight position={[-5, 5, 5]} color="#4a90e2" intensity={1.2} />
+          <pointLight position={[5, -5, -5]} color="#ff6b35" intensity={0.8} />
+          <spotLight position={[0, 10, 0]} color="#ffffff" intensity={1.5} angle={0.3} />
 
           <Suspense fallback={null}>
-            <Stars radius={100} depth={50} count={isMobile ? 2000 : 3000} factor={4} saturation={0} fade speed={1} />
+            <Stars radius={100} depth={50} count={isMobile ? 800 : 1500} factor={4} saturation={0} fade speed={1} />
           </Suspense>
-          <Nebula prefersReducedMotion={prefersReducedMotion} />
 
           {projects.map((project) => (
             <Suspense key={project.id} fallback={<LoadingFallback />}>
@@ -579,7 +548,7 @@ export default function GalaxyPortfolio() {
             </Suspense>
           ))}
 
-          <CameraController disabled={prefersReducedMotion} />
+
 
           <OrbitControls
             enablePan={false}
@@ -587,12 +556,14 @@ export default function GalaxyPortfolio() {
             enableRotate={true}
             autoRotate={!prefersReducedMotion}
             autoRotateSpeed={prefersReducedMotion ? 0 : 0.5}
-            maxPolarAngle={Math.PI / 1.8}
-            minPolarAngle={Math.PI / 2.2}
-            minDistance={3}
-            maxDistance={10}
+            maxPolarAngle={Math.PI / 1.5}
+            minPolarAngle={Math.PI / 3}
+            minDistance={8}
+            maxDistance={20}
+            enableDamping={true}
+            dampingFactor={0.08}
           />
-        </Canvas>
+        </OptimizedCanvas>
 
         {/* Keyboard Accessible Hitboxes */}
         {projects.map((project) => (
@@ -700,4 +671,6 @@ export default function GalaxyPortfolio() {
       </section>
     </Suspense>
   )
-}
+})
+
+export default GalaxyPortfolio

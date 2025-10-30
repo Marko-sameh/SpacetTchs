@@ -51,6 +51,6 @@
   --transition-slow: 500ms ease;
 
   /* Mobile-specific adjustments */
-  --mobile-padding: clamp(1rem, 4vw, 2rem);
+  --mobile-padding: clamp(0.75rem, 3vw, 1rem);
   --mobile-gap: clamp(0.75rem, 3vw, 1.5rem);
 }
