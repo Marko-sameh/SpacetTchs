@@ -15,32 +15,41 @@ Loader.displayName = 'Loader'
 export const Scene3D = memo(({ children, className = "w-full h-full" }) => {
   const [mounted, setMounted] = useState(false)
   
-  // Detect device capabilities for performance optimization
+  // Enhanced device capabilities detection
   const deviceCapabilities = useMemo(() => {
-    if (typeof window === 'undefined') return { isMobile: false, isLowEnd: false }
+    if (typeof window === 'undefined') return { isMobile: false, isLowEnd: false, hasWebGL2: false }
     
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     const isLowEnd = navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4
+    const hasWebGL2 = !!window.WebGL2RenderingContext
     
-    return { isMobile, isLowEnd }
+    return { isMobile, isLowEnd, hasWebGL2 }
   }, [])
 
   const canvasConfig = useMemo(() => ({
-    camera: { position: [0, 0, 5], fov: 75 },
-    gl: { 
-      antialias: !deviceCapabilities.isMobile,
-      alpha: true,
-      powerPreference: 'high-performance',
-      stencil: false,
-      depth: true
+    camera: { 
+      position: [0, 0, 8], 
+      fov: 60,
+      near: 0.1,
+      far: 1000
     },
-    dpr: deviceCapabilities.isMobile ? [1, 1.5] : [1, 2],
+    gl: { 
+      antialias: !deviceCapabilities.isMobile && !deviceCapabilities.isLowEnd,
+      alpha: true,
+      powerPreference: deviceCapabilities.isLowEnd ? 'default' : 'high-performance',
+      stencil: false,
+      depth: true,
+      logarithmicDepthBuffer: false,
+      precision: deviceCapabilities.isLowEnd ? 'mediump' : 'highp'
+    },
+    dpr: deviceCapabilities.isMobile ? [1, 1.5] : deviceCapabilities.isLowEnd ? [1, 1.5] : [1, 2],
     style: { background: 'transparent' },
     performance: {
-      min: 0.5,
-      max: 1,
-      debounce: 200
-    }
+      min: deviceCapabilities.isLowEnd ? 0.3 : 0.5,
+      max: deviceCapabilities.isLowEnd ? 0.8 : 1,
+      debounce: deviceCapabilities.isLowEnd ? 300 : 200
+    },
+    frameloop: 'always' // Continuous rendering for better UX
   }), [deviceCapabilities])
 
   useEffect(() => {
@@ -59,9 +68,17 @@ export const Scene3D = memo(({ children, className = "w-full h-full" }) => {
     <div className={className}>
       <Canvas {...canvasConfig}>
         <Suspense fallback={null}>
-          {!deviceCapabilities.isLowEnd && <Environment preset="city" />}
-          <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} intensity={deviceCapabilities.isLowEnd ? 0.8 : 1} />
+          {/* Conditionally load Environment based on device capabilities */}
+          {!deviceCapabilities.isLowEnd && !deviceCapabilities.isMobile && (
+            <Environment preset="city" background={false} />
+          )}
+          {/* Reduced lighting for performance */}
+          <ambientLight intensity={deviceCapabilities.isLowEnd ? 0.3 : 0.4} />
+          <pointLight 
+            position={[10, 10, 10]} 
+            intensity={deviceCapabilities.isLowEnd ? 0.6 : 0.8}
+            castShadow={false}
+          />
           {children}
         </Suspense>
       </Canvas>
