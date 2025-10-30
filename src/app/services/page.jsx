@@ -71,7 +71,7 @@ export default function ServicesPage() {
       <ServiceStructuredData serviceType="webDevelopment" />
       <BreadcrumbStructuredData items={breadcrumbs} />
       <FAQStructuredData faqs={faqs} />
-      <div className="absolute inset-0 z-0">
+      <div className="fixed inset-0 -z-10 h-screen w-screen">
         <Suspense fallback={<div className="w-full h-full bg-gradient-to-br from-purple-900/10 to-cyan-900/10" />}>
           <Scene3D>
             <StarField3D count={800} />
